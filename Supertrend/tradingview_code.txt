@@ -1,0 +1,45 @@
+//@version=5
+strategy("plan 3 one dema", overlay=true, default_qty_type=strategy.percent_of_equity, default_qty_value=90)
+
+timePeriod = time >= timestamp(syminfo.timezone, 2020, 1, 1, 8, 0) and time <= timestamp(syminfo.timezone, 2023, 2, 20, 8, 0)
+
+length = input.int(252, minval=1)
+atrPeriod = input(6, "ATR Length")
+factor = input.float(3.5, "Factor", step = 0.01)
+
+[supertrend, direction] = ta.supertrend(factor, atrPeriod)
+
+src = close
+e2_1 = ta.ema(src, length)
+e2_2 = ta.ema(e2_1, length)
+dema_2 = 2 * e2_1 - e2_2
+
+if ta.change(direction) < 0 and close > dema_2 and timePeriod
+    strategy.entry("Long", strategy.long)
+if ta.change(direction) > 0 and close > dema_2 and timePeriod
+    strategy.close("Long")
+
+if ta.change(direction) > 0 and close < dema_2 and timePeriod
+    strategy.entry("Short", strategy.short)
+if ta.change(direction) < 0 and close < dema_2 and timePeriod
+    strategy.close("Short")
+
+if ta.crossover(close,dema_2) and direction == -1 and timePeriod
+    strategy.entry("L", strategy.long)
+
+if ta.crossunder(close,dema_2) and direction == 1 and timePeriod
+    strategy.entry("S", strategy.short)
+
+if ta.change(direction) > 0 and  close > dema_2 and timePeriod
+    strategy.close("L")
+
+if ta.change(direction) < 0  and close < dema_2 and timePeriod
+    strategy.close("S")
+
+plot(dema_2)
+bodyMiddle = plot((open + close) / 2, display=display.none)
+upTrend = plot(direction < 0 ? supertrend : na, "Up Trend", color = color.green, style=plot.style_linebr)
+downTrend = plot(direction < 0? na : supertrend, "Down Trend", color = color.red, style=plot.style_linebr)
+
+fill(bodyMiddle, upTrend, color.new(color.green, 90), fillgaps=false)
+fill(bodyMiddle, downTrend, color.new(color.red, 90), fillgaps=false)
